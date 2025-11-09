@@ -8,7 +8,7 @@ from .views import (
     UserViewSet,
     ProfileViewSet,
     ### For testing
-    RegisterView,
+    # RegisterView,
 )
 
 router = DefaultRouter()
@@ -20,7 +20,7 @@ urlpatterns = [
     path('login', EmailTokenObtainPairLoginView.as_view(), name='login'),
     path('logout', TokenBlacklistView.as_view(), name='logout'),
     ### For testing
-    path('register', RegisterView.as_view(), name='register'),
+    # path('register', RegisterView.as_view(), name='register'),
 
     # users and profiles api's
     path('', include(router.urls)),

@@ -18,11 +18,11 @@ class EmailTokenObtainPairLoginView(TokenObtainPairView):
 
 
 ### FOR Testing
-class RegisterView(generics.CreateAPIView):
-    """Register new user"""
-    queryset = AuthUser.objects.all()
-    permission_classes = [permissions.AllowAny]
-    serializer_class = RegisterSerializer
+# class RegisterView(generics.CreateAPIView):
+#     """Register new user"""
+#     queryset = AuthUser.objects.all()
+#     permission_classes = [permissions.AllowAny]
+#     serializer_class = RegisterSerializer
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
