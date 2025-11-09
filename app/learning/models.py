@@ -1,9 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
 
 from groups.models import Group
-from users.models import Role
-
+from users.models import ROLE_CHOICES, AuthUser
 
 class LearningStage(models.Model):
     """
@@ -24,9 +22,10 @@ class Enrollment(models.Model):
     ORM модель для записи на учебную программу
     """
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
+    user = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name="enrollments")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="enrollments")
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="enrollments")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name="Роль")
+
 
     def __str__(self):
-        return f"{self.user.username} → {self.group.name} ({self.role.role})"
+        return f"{self.user.username} → {self.group.name} ({self.role})"
