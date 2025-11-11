@@ -6,7 +6,9 @@ from rest_framework.exceptions import ValidationError, AuthenticationFailed
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer
 )
+
 from .models import Profile, AuthUser
+from learning.models import Enrollment
 
 
 class TabNumberTokenObtainPairSerializer(TokenObtainPairSerializer):
