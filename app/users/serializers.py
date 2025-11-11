@@ -36,7 +36,6 @@ class TabNumberTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "code": "password_not_set"
             })
         
-        print(user.password)
         if not user.check_password(password):
             raise AuthenticationFailed(detail="Incorrect password")
 
