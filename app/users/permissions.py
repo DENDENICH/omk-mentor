@@ -1,5 +1,20 @@
 from rest_framework import permissions
 
+from typing import Optional
+from .models import Profile 
+
+
+def _cheking_profile_role(request, view, role: str) -> bool:
+    user = request.user
+    if not user or not user.is_authenticated:
+        return False
+    profile: Optional[Profile] = getattr(user, "profile", None)
+    if not profile:
+        return False
+
+    return profile.account_role == role
+
+
 
 class RolePermission(permissions.BasePermission):
     """
@@ -19,11 +34,7 @@ class RolePermission(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        # profile = getattr(user, "profile", None)
-        # if not profile:
-        #     return False
-
-        # return profile.role in self.allowed_roles
+        
     
     @classmethod
     def allow(cls, *roles):
@@ -33,10 +44,20 @@ class RolePermission(permissions.BasePermission):
         return _RolePermission
 
 
-class IsAdminUser(permissions.BasePermission):
+class IsAdminPermission(permissions.BasePermission):
     """
-    Allows access only to admin users.
+    Allows access only to users with role 'admin'.
     """
 
     def has_permission(self, request, view):
-        return request.user and request.user.is_staff
+        return _cheking_profile_role(request, view, 'admin')
+
+    
+
+class IsOrganizerPermission(permissions.BasePermission):
+    """
+    Allows access only to users with role 'organizer'.
+    """
+
+    def has_permission(self, request, view):
+        return _cheking_profile_role(request, view, 'organizer')

@@ -1,7 +1,10 @@
-import io
+import os
 import pandas as pd
 
+from django.conf import settings
+
 from django.http import HttpResponse
+from django.http import FileResponse, Http404
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
@@ -23,11 +26,13 @@ from .serializers import (
     SetPasswordSerializer,
     UserExcelUploadSerializer
 )
-from .permissions import RolePermission 
+from .permissions import IsAdminPermission, IsOrganizerPermission
 
 
 class TabNumberTokenObtainPairLoginView(TokenObtainPairView):
-    """For getting JWT token"""
+    """
+    For getting JWT token
+    """
     serializer_class = TabNumberTokenObtainPairSerializer
 
 
@@ -35,19 +40,15 @@ class AdminUserImportViewSet(viewsets.ViewSet):
     """
     Creating users and importing users from Excel-file
     """
-    permission_classes = [RolePermission.allow('admin')]
+    permission_classes = [IsAdminPermission]
 
     @action(detail=False, methods=['get'], url_path='download-template')
     def download_template(self, request):
-        df = pd.DataFrame(columns=['first_name', 'last_name', 'email', 'tab_number'])
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Users')
-        buffer.seek(0)
-        response = HttpResponse(
-            buffer,
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+        file_path = os.path.join(settings.BASE_DIR, 'templates_files', 'users_template.xlsx')
+        if not os.path.exists(file_path):
+            raise Http404("Template file not found")
+        response = FileResponse(open(file_path, 'rb'),
+                                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="users_template.xlsx"'
         return response
 
@@ -66,7 +67,7 @@ class AdminUserImportViewSet(viewsets.ViewSet):
             return Response({"detail": f"Не удалось прочитать Excel-файл: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         # проверяем необходимые столбцы
-        expected_cols = {'first_name', 'last_name', 'email', 'tab_number'}
+        expected_cols = {'Имя', 'Фамилия', 'Эл. почта', 'Табельный номер'}
         if not expected_cols.issubset(set(df.columns)):
             return Response({"detail": f"В файле отсутствуют столбцы: {expected_cols - set(df.columns)}"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -75,10 +76,10 @@ class AdminUserImportViewSet(viewsets.ViewSet):
         errors = []
 
         for idx, row in df.iterrows():
-            first_name = row['first_name']
-            last_name = row['last_name']
-            email = row['email']
-            tab_number = row['tab_number']
+            first_name = row['Имя']
+            last_name = row['Фамилия']
+            email = row['Эл. почта']
+            tab_number = row['Табельный номер']
 
             # Бизнес-логика: например, если пользователь с tab_number уже существует — пропускаем или фиксируем ошибку
             if AuthUser.objects.filter(tab_number=tab_number).exists():
