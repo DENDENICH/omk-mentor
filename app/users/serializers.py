@@ -1,42 +1,46 @@
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import authenticate
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError, AuthenticationFailed
-from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer
 )
-
-from psycopg2.errors import IntegrityError
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import Profile, AuthUser
 
 
-class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+class TabNumberTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Custom token serializer - using user's email for auth
+    Custom token serializer - using user's tab_number for auth
     """
-    username_field = "tab-number"
-
-
-class CustomTokenObtainPairSerializer(EmailTokenObtainPairSerializer):
+    username_field = 'tab_number'
 
     def validate(self, attrs):
-        tab_number = attrs.get("tab-number")
+        # Попытка аутентификации
+        tab_number = attrs.get("tab_number")
         password = attrs.get("password")
 
         if not tab_number or not password:
-            raise AuthenticationFailed(detail="Email and password are required")
+            raise ValidationError(detail="tab number and password are required")
 
         try:
             user = AuthUser.objects.get(tab_number=tab_number)
         except AuthUser.DoesNotExist:
             raise AuthenticationFailed(detail="User not found")
 
+
+        # Проверка флага is_auth
+        if not user.is_auth:
+            raise ValidationError({
+                "detail": "Must be set password",
+                "code": "password_not_set"
+            })
+        
+        print(user.password)
         if not user.check_password(password):
             raise AuthenticationFailed(detail="Incorrect password")
 
+        # Всё ок — вызываем родительскую валидацию, получаем токены
         data = super().get_token(user)
         return {
             "refresh": str(data),
@@ -44,12 +48,12 @@ class CustomTokenObtainPairSerializer(EmailTokenObtainPairSerializer):
         }
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    """Register serializer"""
-    email = serializers.EmailField(
-        required=True,
-        validators=[UniqueValidator(queryset=AuthUser.objects.all())]
-    )
+
+class SetPasswordSerializer(serializers.Serializer):
+    """
+    Serializer for setting password for not auth user
+    """
+    tab_number = serializers.CharField()
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -63,35 +67,41 @@ class RegisterSerializer(serializers.ModelSerializer):
         style={'input_type': 'password'}
     )
 
-    class Meta:
-        model = AuthUser
-        fields = (
-            "id", "tab_number", "email", "password", "password2", "first_name", "last_name"
-        )
 
     def validate(self, attrs):
-        """Checking password and password2"""
+        try:
+            user = AuthUser.objects.get(tab_number=attrs['tab_number'])
+        except AuthUser.DoesNotExist:
+            raise serializers.ValidationError("Пользователь не найден")
+
+        if user.is_auth:
+            raise serializers.ValidationError("Пароль уже задан")
+
         if attrs["password"] != attrs["password2"]:
             raise ValidationError(detail="The passwords dont't match")
-        elif len(attrs["first_name"]) < 3:
-            raise ValidationError(detail="The first name is too short")
-        elif len(attrs["last_name"]) < 3:
-            raise ValidationError(detail="The last name is too short")       
+
+        attrs['user'] = user
         return attrs
 
+    def save(self, **kwargs) -> AuthUser:
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['password'])
+        user.is_auth = True
+        user.save()
+        return user
+
+
+
+class AdminCreateUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuthUser
+        fields = ['first_name', 'last_name', 'email', 'tab_number']
+
     def create(self, validated_data):
-        try:
-            user = AuthUser.objects.create_user(
-                tab_number=validated_data["tab_number"],
-                email=validated_data.get("email"),
-                password=validated_data["password"],
-                first_name=validated_data["first_name"],
-                last_name=validated_data["last_name"],
-                username=validated_data["tab_number"],
-            )
-        except IntegrityError as e:
-            # if email already exists
-            raise ValidationError(detail="User with email already exists")
+        user = AuthUser.objects.create(**validated_data)
+        user.set_unusable_password()  # пароль нельзя использовать
+        user.is_auth = False
+        user.save()
         return user
 
 
@@ -108,4 +118,12 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ("id", "user", "about_me", "avatar")
+        fields = ("id", "user", "avatar")
+
+
+class UserExcelUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+
+class UserTemplateDownloadSerializer(serializers.Serializer):
+    pass

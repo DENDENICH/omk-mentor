@@ -1,7 +1,7 @@
 from django.db import models
 
 from groups.models import Group
-from users.models import ROLE_CHOICES, AuthUser
+from users.models import AuthUser
 
 class LearningStage(models.Model):
     """
@@ -24,7 +24,14 @@ class Enrollment(models.Model):
 
     user = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name="enrollments")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="enrollments")
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name="Роль")
+    role = models.CharField(
+        max_length=20, 
+        choices=(
+            ("student", "Студент"),
+            ("mentor", "Ментор")
+        ), 
+        verbose_name="Роль"
+    )
 
 
     def __str__(self):
