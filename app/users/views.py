@@ -3,7 +3,6 @@ import pandas as pd
 
 from django.conf import settings
 
-from django.http import HttpResponse
 from django.http import FileResponse, Http404
 
 from rest_framework_simplejwt.views import TokenObtainPairView

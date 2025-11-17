@@ -1,4 +1,3 @@
-from typing import Any
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -48,6 +47,12 @@ class Profile(models.Model):
             ('organizer', 'Организатор'),
         ),
         null=True, blank=True
+    )
+    active_membership = models.ForeignKey(
+        "learning.Enrollment",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='active_profiles'
     )
     avatar = models.ImageField(null=True, blank=True, upload_to=product_preview_directory_path)
 
