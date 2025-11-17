@@ -1,7 +1,8 @@
 from django.db import models
 
-from groups.models import Group
+from groups.models import Group, Subgroup
 from users.models import AuthUser
+
 
 class LearningStage(models.Model):
     """
@@ -23,7 +24,7 @@ class Enrollment(models.Model):
     """
 
     user = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name="enrollments")
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="enrollments")
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE, related_name="enrollments", null=True, blank=True)
     role = models.CharField(
         max_length=20, 
         choices=(

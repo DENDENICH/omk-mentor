@@ -1,27 +1,31 @@
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser
 
-from .models import Group
-from .serializer import GroupSerializer
-
-
-class GroupViewSet(ModelViewSet):
-    """CRUD для групп"""
-
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-    # permission_classes = [IsAuthenticated]
-
-    # фильтры и поиск
-    filter_backends = [
-        SearchFilter,
-        DjangoFilterBackend,
-        OrderingFilter
-    ]
-    search_fields = ["name", "organizer__username"]
-    filterset_fields = ["organizer__username", "name"]
-    ordering_fields = ["name", "organizer__username"]
+from django.http import HttpResponse
+from .serializers import GroupTemplateSerializer, GroupUploadSerializer
+from users.permissions import IsAdminPermission
 
 
+class GroupImportViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminPermission]
+
+    @action(detail=False, methods=['get'], url_path="download-template")
+    def download_template(self, request):
+        serializer = GroupTemplateSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        buffer, filename = serializer.build_template()
+        resp = HttpResponse(
+            buffer,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return resp
+
+    @action(detail=False, methods=['post'], url_path="upload-excel", parser_classes=[MultiPartParser])
+    def upload_excel(self, request):
+        serializer = GroupUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)

@@ -1,15 +1,7 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
-from .views import (
-    GroupViewSet
-)
-
-app_name = "group"
+from .views import GroupImportViewSet
 
 router = DefaultRouter()
-router.register("group", GroupViewSet)
+router.register(r'group-import', GroupImportViewSet, basename='group-import')
+urlpatterns = router.urls
 
-urlpatterns = [
-    path("", include(router.urls))
-]
