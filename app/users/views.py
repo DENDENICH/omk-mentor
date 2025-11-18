@@ -17,6 +17,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from drf_spectacular.utils import OpenApiTypes, extend_schema
+
 from .models import Profile, AuthUser
 from .serializers import (
     UserSerializer,
@@ -51,8 +53,30 @@ class AdminUserImportViewSet(viewsets.ViewSet):
         response['Content-Disposition'] = 'attachment; filename="users_template.xlsx"'
         return response
 
-
-    @action(detail=False, methods=['post'], url_path='upload-excel', parser_classes=[MultiPartParser, FormParser])
+    @extend_schema(
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'file': {
+                        'type': 'string',
+                        'format': 'binary',
+                        'description': 'Excel with users'
+                    }
+                },
+                'required': ['file']
+            }
+        },
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Загрузка Excel файла",
+        description="Загружает Excel-файл и импортирует пользователей."
+    )
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path="upload-excel",
+        parser_classes=[MultiPartParser]
+    )
     def upload_excel(self, request):
         serializer = UserExcelUploadSerializer(data=request.data)
         if not serializer.is_valid():

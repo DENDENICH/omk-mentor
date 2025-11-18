@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 
+from drf_spectacular.utils import OpenApiTypes, extend_schema
+
 from django.http import HttpResponse
 from .serializers import GroupTemplateSerializer, GroupUploadSerializer
 from users.permissions import IsAdminPermission
@@ -23,7 +25,30 @@ class GroupImportViewSet(viewsets.ViewSet):
         resp["Content-Disposition"] = f'attachment; filename="{filename}"'
         return resp
 
-    @action(detail=False, methods=['post'], url_path="upload-excel", parser_classes=[MultiPartParser])
+    @extend_schema(
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'file': {
+                        'type': 'string',
+                        'format': 'binary',
+                        'description': 'Excel with users'
+                    }
+                },
+                'required': ['file']
+            }
+        },
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Загрузка Excel файла",
+        description="Загружает Excel-файл и импортирует пользователей."
+    )
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path="upload-excel",
+        parser_classes=[MultiPartParser]
+    )
     def upload_excel(self, request):
         serializer = GroupUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
