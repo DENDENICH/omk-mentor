@@ -43,9 +43,11 @@ class AdminUserImportViewSet(viewsets.ViewSet):
     """
     permission_classes = [IsAdminPermission]
 
+    excel_template_name = 'users_template.xlsx'
+
     @action(detail=False, methods=['get'], url_path='download-template')
     def download_template(self, request):
-        file_path = os.path.join(settings.BASE_DIR, 'templates_files', 'users_template.xlsx')
+        file_path = os.path.join(settings.BASE_DIR, 'templates_files', self.excel_template_name)
         if not os.path.exists(file_path):
             raise Http404("Template file not found")
         response = FileResponse(open(file_path, 'rb'),

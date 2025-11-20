@@ -29,7 +29,6 @@ class Enrollment(models.Model):
         max_length=20, 
         choices=(
             ("student", "Студент"),
-            ("mentor", "Ментор")
         ), 
         verbose_name="Роль"
     )

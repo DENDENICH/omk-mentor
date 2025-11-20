@@ -15,9 +15,10 @@ class Group(models.Model):
         return self.name
 
 class Subgroup(models.Model):
+    mentor = models.ForeignKey(AuthUser, on_delete=models.SET_NULL, null=True, related_name="subgroups")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="subgroups")
     name = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.group.name} — {self.name or self.mentor.tab_number}"
+        return f"{self.group.name} — {self.name}"
